@@ -1,11 +1,11 @@
 import shapely.geometry
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
-from vectorattributes.projection import *
 from affine import Affine
 import rasterio.features
 import rasterio.transform
 import numpy as np
 from collections import Counter
+import math
 
 
 DEFAULT_PARAMS = {
