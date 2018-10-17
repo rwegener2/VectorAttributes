@@ -1,6 +1,0 @@
-cython
-shapely
-numpy
-rasterio
-affine
-pyproj

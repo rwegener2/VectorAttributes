@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name='vectorattributes',
@@ -8,5 +8,6 @@ setup(
     license='',
     author='rachelwegener',
     author_email='',
-    description=''
+    description='',
+    install_requires=['pyproj', 'shapely', 'rasterio', 'affine', 'numpy']
 )
