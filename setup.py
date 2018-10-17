@@ -9,5 +9,5 @@ setup(
     author='rachelwegener',
     author_email='',
     description='',
-    install_requires=['pyproj', 'shapely', 'rasterio', 'affine', 'numpy']
+    install_requires=['shapely', 'rasterio', 'affine', 'numpy']
 )
