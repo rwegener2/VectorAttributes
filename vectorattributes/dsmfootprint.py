@@ -108,7 +108,6 @@ class DSMFootprint(Footprint):
         dsm_calc_obj.mask_low_elevations()
         if test_dist is True:
             dsm_calc_obj.comparison_factor()
-        dsm_calc_obj.remove_high_elevations()
         dsm_calc_obj.calculate_stats()
         return dsm_calc_obj
 

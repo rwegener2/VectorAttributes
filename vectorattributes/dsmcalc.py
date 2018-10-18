@@ -178,7 +178,7 @@ class DSMCalc(object):
         if self.values['pixel_count'] > 1:
             co_array = self.masked_dsm[(self.masked_dsm <= p_100) & (self.masked_dsm >= p_75)]
             height_max = np.median(co_array.compressed())
-            self.values['height_max'] = height_max
+            self.values['height_max'] = round(float(height_max), 5)
 
     def comparison_factor_maximum(self, p_100, p_75):
         """
@@ -206,7 +206,7 @@ class DSMCalc(object):
         # calculate comparison ratio
         self.values['comparison_factor'] = np.NaN
         if q4r > 0 and iqr > 0:
-            comparison_factor = round(q4r / iqr, ndigits=2)
+            comparison_factor = round(float((q4r / iqr)), 5)
             if not math.isinf(comparison_factor) or math.isnan(comparison_factor):
                 self.values['comparison_factor'] = comparison_factor
         self.comparison_factor_maximum(p_100, p_75)
@@ -220,31 +220,29 @@ class DSMCalc(object):
 
     def calculate_stats(self):
         if self.values['pixel_count'] > 1:
-            self.values['min'] = float(self.masked_dsm.min())
-            self.values['max'] = float(self.masked_dsm.max())
-            self.values['mean'] = float(self.masked_dsm.mean())
-            self.values['sum'] = float(self.masked_dsm.sum())
-            self.values['std'] = float(self.masked_dsm.std())
-            self.values['median'] = float(np.median(self.masked_dsm.compressed()))
+            self.values['min'] = round(float(self.masked_dsm.min()), 5)
+            self.values['max'] = round(float(self.masked_dsm.max()), 5)
+            self.values['mean'] = round(float(self.masked_dsm.mean()), 5)
+            self.values['sum'] = round(float(self.masked_dsm.sum()), 5)
+            self.values['std'] = round(float(self.masked_dsm.std()), 5)
+            self.values['median'] = round(float(np.median(self.masked_dsm.compressed())), 5)
         else:
-            self.values['min'] = float(self.masked_dsm.compressed()[0])
-            self.values['max'] = float(self.masked_dsm.compressed()[0])
-            self.values['mean'] = float(self.masked_dsm.compressed()[0])
-            self.values['sum'] = float(self.masked_dsm.compressed()[0])
-            self.values['std'] = float(0)
-            self.values['median'] = float(self.masked_dsm.compressed()[0])
+            self.values['min'] = round(float(self.masked_dsm.compressed()[0]), 5)
+            self.values['max'] = round(float(self.masked_dsm.compressed()[0]), 5)
+            self.values['mean'] = round(float(self.masked_dsm.compressed()[0]), 5)
+            self.values['sum'] = round(float(self.masked_dsm.compressed()[0]), 5)
+            self.values['std'] = 0
+            self.values['median'] = round(float(self.masked_dsm.compressed()[0]), 5)
 
-        self.values['area'] = float(self.footprint.area)
-        # print(self.values['pixel_count'], 'pixel count')
-        # print(self.values['area'], 'area')
-        self.values['coverage'] = float(self.values['pixel_count'] / self.values['area'] /
-                                        self.DEFAULT_PARAMS['dsm_calc']['pixel_area'])
+        self.values['area'] = round(float(self.footprint.area), 5)
+        self.values['coverage'] = round(float(self.values['pixel_count'] / self.values['area'] /
+                                          self.DEFAULT_PARAMS['dsm_calc']['pixel_area']), 5)
         self.values['range'] = self.values['max'] - self.values['min']
 
         pixel_counts_dict = Counter(self.masked_dsm.compressed().tolist())
         try:
-            self.values['mode'] = float(pixel_counts_dict.most_common(1)[0][0])
-            self.values['minor'] = float(pixel_counts_dict.most_common()[-1][0])
+            self.values['mode'] = round(float(pixel_counts_dict.most_common(1)[0][0]), 5)
+            self.values['minor'] = round(float(pixel_counts_dict.most_common()[-1][0]), 5)
         except IndexError:
             self.values['mode'] = 0
             self.values['minor'] = 0
