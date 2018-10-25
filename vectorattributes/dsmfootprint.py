@@ -92,9 +92,6 @@ class DSMFootprint(Footprint):
         # Validation / Fixing wanky results
         self.check_for_errors()
 
-        # if self.properties['u_id'] in ['ur_06_20161121_12292 ']:
-        #     print(self.eave_calcs['height'], self.)
-
     def determine_is_null(self):
         footprint = DSMCalc(self.dsm, self.footprint)
         return footprint.errors['dsm_null']

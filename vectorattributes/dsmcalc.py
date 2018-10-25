@@ -56,7 +56,6 @@ class DSMCalc(object):
         if not isinstance(footprint, (BaseGeometry, BaseMultipartGeometry)):
             raise TypeError('DSMCalc input geometry is not a shapely geometry based object')
         self.footprint = self.check_vector_validity(footprint)
-        # TODO figure out a good way to check dsm input
         self.dsm = self.check_raster_coverage(dsm, footprint)
         self.dsm_data = self.read_dsm()
         self.masked_dsm = self.mask_dsm()

@@ -53,11 +53,9 @@ class Footprint(object):
         :return: original or corrected geometry
         """
         if not polygon.is_valid:
-            print('invalid geom buffering')
             polygon = polygon.buffer(0)
             self.footprint_errors['geometry']['buffer0'] = True
         if not polygon.is_valid:
-            print('invalid geom convex hulling')
             polygon = polygon.convex_hull
             self.footprint_errors['geometry']['convex_hull'] = True
         return polygon
