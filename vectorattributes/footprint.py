@@ -40,7 +40,6 @@ class Footprint(object):
         self.footprint_errors = error_factory()
         self.footprint = self.get_polygon()
         self.properties = self.feature['properties']
-        print('properties ', self.properties['u_id'])
         self.footprint_ground_full, self.footprint_ground = self.buffer_donut(DEFAULT_PARAMS['spatial_calcs']
                                                                               ['ground_buffer_inner'] +
                                                                               DEFAULT_PARAMS['spatial_calcs']

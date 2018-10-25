@@ -75,16 +75,9 @@ class DSMFootprint(Footprint):
             tree_flag = True
         super().__init__(feature)
         self.DEFAULT_PARAMS.update(NEW_DEFAULT_PARAMS)
-        if self.properties['u_id'] in ['ur_02_56_20160908_77545', 'ur_02_56_20160908_77575', 'ur_02_56_20160908_77578',
-                                       'ur_02_56_20160908_77570', 'ur_02_56_20160908_77571', 'ur_02_56_20160908_77576',
-                                       'ur_02_56_20160908_77577', 'ur_02_56_20160908_77574']:
-            print('-------------EXAMPLE FEATURE -------------------------->>>>>>>>>>>>>>>')
-            print('inherited footprint errors ', self.footprint_errors)
         self.footprint_errors['dsm_null'] = self.determine_is_null()
-        print('after determine is null ', self.footprint_errors)
         self.calculation_errors = error_factory()
         self.footprint_calcs = self.footprint_calculations(tree_flag=tree_flag)
-        print('after footprint calcs ', self.footprint_errors)
         self.ground_calcs = self.ground_calculations()
         self.eave_calcs = self.eave_calculations(tree_flag=tree_flag)
         self.roof_calcs = self.roof_calculations(tree_flag=tree_flag)
@@ -99,6 +92,9 @@ class DSMFootprint(Footprint):
         # Validation / Fixing wanky results
         self.check_for_errors()
 
+        # if self.properties['u_id'] in ['ur_06_20161121_12292 ']:
+        #     print(self.eave_calcs['height'], self.)
+
     def determine_is_null(self):
         footprint = DSMCalc(self.dsm, self.footprint)
         return footprint.errors['dsm_null']
@@ -108,6 +104,7 @@ class DSMFootprint(Footprint):
         dsm_calc_obj.mask_low_elevations()
         if test_dist is True:
             dsm_calc_obj.comparison_factor()
+        dsm_calc_obj.clip_max_heights()
         dsm_calc_obj.calculate_stats()
         return dsm_calc_obj
 
@@ -152,24 +149,29 @@ class DSMFootprint(Footprint):
 
     def calculate_pitch(self):
         if self.roof_calcs['std'] > 1.5:
-            self.calculations['roof_pitch'] = "steep or high complexity"
+            self.roof_calcs.update({"pitch": "steep or high complexity"})
         elif self.roof_calcs['std'] > 0.5:
-            self.calculations['roof_pitch'] = "moderate"
+            self.roof_calcs.update({"pitch": "moderate"})
         else:
-            self.calculations['roof_pitch'] = "flat"
+            self.roof_calcs.update({"pitch": "flat"})
 
     def set_eave_height(self):
         """
         As long as both eave and ground are valid values and eave is not lower than ground, calculate eave height.  If
         any previous conditions are true, set error values and flags.
         """
+        # if not np.isnan(self.roof_calcs['elevation'])
         eave_elev = self.eave_calcs['elevation']
         ground_elev = self.ground_calcs['elevation']
-        if np.isnan(eave_elev) or np.isnan(ground_elev) or eave_elev < ground_elev:
-            self.eave_calcs['height'] = np.NaN
-            self.calculation_errors['eave_height'] = True
+        # TODO is this the logic we want to be using?  It matches Dans right now
+        if not np.isnan(self.roof_calcs['elevation']):
+            if not eave_elev >= ground_elev:
+                self.eave_calcs['height'] = np.NaN
+                self.calculation_errors['eave_height'] = True
+            else:
+                self.eave_calcs['height'] = eave_elev - ground_elev
         else:
-            self.eave_calcs['height'] = eave_elev - ground_elev
+            self.eave_calcs['height'] = np.NaN
 
     def set_roof_height(self):
         """
@@ -178,11 +180,30 @@ class DSMFootprint(Footprint):
         """
         roof_elev = self.roof_calcs['elevation']
         ground_elev = self.ground_calcs['elevation']
-        if np.isnan(roof_elev) or np.isnan(ground_elev) or roof_elev < ground_elev:
-            self.roof_calcs['height'] = np.NaN
-            self.calculation_errors['roof_height'] = True
+        # TODO is this the logic we want to be using?  It matches Dans right now
+        if not np.isnan(roof_elev) and not np.isnan(ground_elev):
+            if roof_elev < ground_elev:
+                self.roof_calcs['height'] = np.NaN
+                self.calculation_errors['roof_height'] = True
+            else:
+                self.roof_calcs['height'] = roof_elev - ground_elev
         else:
-            self.roof_calcs['height'] = roof_elev - ground_elev
+            self.roof_calcs['height'] = np.NaN
+
+    def roof_below_eave_error(self):
+        """
+        Fixing the roof height, only if there is a problem with it (eave elev is nan or roof is below eave)
+        If the eave is below the roof, set the error flag to True
+        If eave is an error, reset the eave height based on the height of the roof
+        """
+        # TODO is this the logic we want to be using?  It matches Dans right now
+        if not np.isnan(self.roof_calcs['elevation']) and not np.isnan(self.ground_calcs['elevation']):
+            roof_height = self.roof_calcs['height']
+            eave_height = self.eave_calcs['height']
+            if roof_height < eave_height:
+                self.calculation_errors['eave_above_roof'] = True
+            if roof_height < eave_height or np.isnan(self.eave_calcs['elevation']):
+                self.reset_eave_low_roof_error(roof_height)
 
     def reset_eave_low_roof_error(self, roof_height):
         """
@@ -192,36 +213,19 @@ class DSMFootprint(Footprint):
         low_building_threshold = self.DEFAULT_PARAMS['error_thresholds']['low_building']
         if roof_height > low_building_threshold:
             self.eave_calcs['height'] = roof_height - low_building_threshold
-            self.calculation_errors['reset_eave_normal_roof'] = True
-        else:
-            self.eave_calcs['height'] = self.calculations['roof_height']
             self.calculation_errors['reset_eave_low_roof'] = True
-
-    def roof_below_eave_error(self):
-        """
-        If the eave is below the roof, set the error flag to True
-        If eave is an error, reset the eave height based on the height of the roof
-        """
-        roof_height = self.roof_calcs['height']
-        eave_height = self.eave_calcs['height']
-        if not roof_height > eave_height:
-            self.calculation_errors['eave_above_roof'] = True
-            if np.isnan(eave_height):
-                self.reset_eave_low_roof_error(roof_height)
+        else:
+            self.eave_calcs['height'] = self.roof_calcs['height']
+            self.calculation_errors['reset_eave_normal_roof'] = True
 
     def min_eave_height_error(self):
         min_eave_height = self.DEFAULT_PARAMS['error_thresholds']['min_eave_height']
         low_building_threshold = self.DEFAULT_PARAMS['error_thresholds']['low_building']
-        print('eave height: ', self.eave_calcs['height'])
-        print('eave_min err before loops ', self.calculation_errors['min_eave'], self.calculation_errors['reset_eave_to_min'])
-        if self.eave_calcs['height'] < min_eave_height:
-            print('found eave height false; entered loop')
+        if not self.eave_calcs['height'] >= min_eave_height:
             self.calculation_errors['min_eave'] = True
             if self.roof_calcs['height'] >= (min_eave_height + low_building_threshold):
                 self.eave_calcs['height'] = min_eave_height
                 self.calculation_errors['reset_eave_to_min'] = True
-        print('eave_min ', self.calculation_errors['min_eave'])
-        print('reset_eave_to_min ', self.calculation_errors['reset_eave_to_min'])
 
     def roof_eave_ratio_error(self):
         max_eave_roof_ratio = self.DEFAULT_PARAMS['error_thresholds']['max_eave_roof_ratio']
@@ -239,6 +243,8 @@ class DSMFootprint(Footprint):
     def min_roof_height_error(self):
         if self.roof_calcs['height'] < (self.DEFAULT_PARAMS['error_thresholds']['min_eave_height'] +
                                         self.DEFAULT_PARAMS['error_thresholds']['low_building']):
+            self.calculation_errors['min_roof_height'] = True
+        elif np.isnan(self.roof_calcs['height']):
             self.calculation_errors['min_roof_height'] = True
 
     def check_for_errors(self):

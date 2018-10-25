@@ -159,13 +159,10 @@ class DSMCalc(object):
         """
         Mask all elevations below the default 'min_elevation' parameter and set error, if negative elevations exist
         """
-        print('checking low elevations')
-        print('len of below zero matrix', len(self.masked_dsm[self.masked_dsm <= 0]))
-        print('minimum matrix value', self.masked_dsm.min())
         if len(self.masked_dsm[self.masked_dsm <= 0]) > 0:
-            print('found negative elevations')
             self.errors['negative_elevation'] = True
             self.masked_dsm[self.masked_dsm < self.DEFAULT_PARAMS['dsm_calc']['min_elevation']] = np.ma.masked
+        self.set_pixel_count()
 
     def set_pixel_count(self):
         """
@@ -175,17 +172,17 @@ class DSMCalc(object):
         self.values['pixel_count'] = pixel_count
 
     def remove_anomalous_roof(self, p_100, p_75):
-        if self.values['pixel_count'] > 1:
-            co_array = self.masked_dsm[(self.masked_dsm <= p_100) & (self.masked_dsm >= p_75)]
-            height_max = np.median(co_array.compressed())
-            self.values['height_max'] = round(float(height_max), 5)
+        # if self.values['pixel_count'] > 1:
+        co_array = self.masked_dsm[(self.masked_dsm <= p_100) & (self.masked_dsm >= p_75)]
+        height_max = np.median(co_array.compressed())
+        self.values['height_max'] = round(float(height_max), 5)
 
     def comparison_factor_maximum(self, p_100, p_75):
         """
         If the q4r to iqr ratio is higher than the maximum, remove anomalous roof heights
         """
         max_comparison_factor = self.DEFAULT_PARAMS['dsm_calc']['max_comparison_factor']
-        if self.values['comparison_factor'] > max_comparison_factor:
+        if self.values['comparison_factor'] >= max_comparison_factor:
             self.errors['comparison_factor_exceeded'] = True
             self.remove_anomalous_roof(p_100, p_75)
 
@@ -196,53 +193,60 @@ class DSMCalc(object):
         atypical feature on the roof, whose values we then remove.
         :return:
         """
-        p_100 = np.percentile(self.masked_dsm.compressed(), 100)
-        p_75 = np.percentile(self.masked_dsm.compressed(), 75)
-        p_25 = np.percentile(self.masked_dsm.compressed(), 25)
+        if not self.masked_dsm.compressed().size <= 1:
+            p_100 = np.percentile(self.masked_dsm.compressed(), 100)
+            p_75 = np.percentile(self.masked_dsm.compressed(), 75)
+            p_25 = np.percentile(self.masked_dsm.compressed(), 25)
 
-        q4r = p_100 - p_75
-        iqr = p_75 - p_25
+            q4r = p_100 - p_75
+            iqr = p_75 - p_25
 
-        # calculate comparison ratio
-        self.values['comparison_factor'] = np.NaN
-        if q4r > 0 and iqr > 0:
-            comparison_factor = round(float((q4r / iqr)), 5)
-            if not math.isinf(comparison_factor) or math.isnan(comparison_factor):
-                self.values['comparison_factor'] = comparison_factor
-        self.comparison_factor_maximum(p_100, p_75)
-        self.remove_high_elevations()
+            # calculate comparison ratio
+            self.values['comparison_factor'] = np.NaN
+            if q4r > 0 and iqr > 0:
+                comparison_factor = round(float((q4r / iqr)), 5)
+                if not math.isinf(comparison_factor) or math.isnan(comparison_factor):
+                    self.values['comparison_factor'] = comparison_factor
+            self.comparison_factor_maximum(p_100, p_75)
 
-    def remove_high_elevations(self):
-        if self.values['pixel_count'] > 1:
-            height_max = self.values['height_max']
-            if not np.isnan(self.values['height_max']):
-                self.masked_dsm[self.masked_dsm > height_max] = np.ma.masked
+    def clip_max_heights(self):
+        if not math.isnan(self.values['height_max']):
+            self.masked_dsm[self.masked_dsm > self.values['height_max']] = np.ma.masked
 
     def calculate_stats(self):
-        if self.values['pixel_count'] > 1:
+        if self.masked_dsm.compressed().size > 1:
+            self.set_pixel_count()
             self.values['min'] = round(float(self.masked_dsm.min()), 5)
             self.values['max'] = round(float(self.masked_dsm.max()), 5)
             self.values['mean'] = round(float(self.masked_dsm.mean()), 5)
             self.values['sum'] = round(float(self.masked_dsm.sum()), 5)
             self.values['std'] = round(float(self.masked_dsm.std()), 5)
             self.values['median'] = round(float(np.median(self.masked_dsm.compressed())), 5)
-        else:
+
+            pixel_counts_dict = Counter(self.masked_dsm.compressed().tolist())
+            try:
+                self.values['mode'] = round(float(pixel_counts_dict.most_common(1)[0][0]), 5)
+                self.values['minor'] = round(float(pixel_counts_dict.most_common()[-1][0]), 5)
+            except IndexError:
+                self.values['mode'] = np.NaN
+                self.values['minor'] = np.NaN
+
+        elif self.masked_dsm.compressed().size == 1:
             self.values['min'] = round(float(self.masked_dsm.compressed()[0]), 5)
             self.values['max'] = round(float(self.masked_dsm.compressed()[0]), 5)
             self.values['mean'] = round(float(self.masked_dsm.compressed()[0]), 5)
             self.values['sum'] = round(float(self.masked_dsm.compressed()[0]), 5)
             self.values['std'] = 0
+            self.values['pixel_count'] = 1
             self.values['median'] = round(float(self.masked_dsm.compressed()[0]), 5)
+            self.values.update({'mode': np.NaN, 'minor': np.NaN})
+
+        elif self.masked_dsm.compressed().size == 0:
+            self.values['pixel_count'] = 0
+            self.values.update({'min': np.NaN, 'max': np.NaN, 'mean': np.NaN, 'sum': np.NaN, 'std': np.NaN,
+                                'median': np.NaN, 'mode': np.NaN, 'minor': np.NaN})
 
         self.values['area'] = round(float(self.footprint.area), 5)
         self.values['coverage'] = round(float(self.values['pixel_count'] / self.values['area'] /
-                                          self.DEFAULT_PARAMS['dsm_calc']['pixel_area']), 5)
+                                              self.DEFAULT_PARAMS['dsm_calc']['pixel_area']), 5)
         self.values['range'] = self.values['max'] - self.values['min']
-
-        pixel_counts_dict = Counter(self.masked_dsm.compressed().tolist())
-        try:
-            self.values['mode'] = round(float(pixel_counts_dict.most_common(1)[0][0]), 5)
-            self.values['minor'] = round(float(pixel_counts_dict.most_common()[-1][0]), 5)
-        except IndexError:
-            self.values['mode'] = 0
-            self.values['minor'] = 0
