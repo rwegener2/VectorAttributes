@@ -70,11 +70,6 @@ class DSMCalc(object):
             return default_errors['all']
 
     @staticmethod
-    def is_error(value):
-        if np.isnan(value):
-            raise RuntimeError('Value is invalid')
-
-    @staticmethod
     def check_vector_validity(footprint):
         """
         :return: footprint
@@ -87,7 +82,6 @@ class DSMCalc(object):
     def check_raster_coverage(raster, footprint):
         """
         Ensure that the bbox for the dsm contains the full feature
-        :return:
         """
         dsm_bbox = shapely.geometry.box(*raster.bounds)
         if dsm_bbox.contains(footprint):
@@ -105,8 +99,7 @@ class DSMCalc(object):
 
     def get_window_from_bounds(self):
         """
-        get pixel coordinates of the bounding box and output in bounding box format
-        :return:
+        Get pixel coordinates of the bounding box and output in bounding box format
         """
         ul, lr = self.get_upper_left_lower_right()
         window = ((lr[0], ul[0] + 1), (ul[1], lr[1] + 1))
@@ -114,8 +107,7 @@ class DSMCalc(object):
 
     def read_dsm(self):
         """
-        read in dsm data from the bounding box of footprint
-        :return:
+        Read in dsm data from the bounding box of footprint
         """
         window = self.get_window_from_bounds()
         elev_data = self.dsm.read(1, window=window)
@@ -123,9 +115,8 @@ class DSMCalc(object):
 
     def mask_dsm(self):
         """
-        create a mask of the dsm pixels touching the footprint by rasterizing the footprint values and masking the part
+        Create a mask of the dsm pixels touching the footprint by rasterizing the footprint values and masking the part
         of the raster data that overlaps with the feature
-        :return:
         """
         ul, lr = self.get_upper_left_lower_right()
         t = self.dsm.transform
@@ -190,7 +181,6 @@ class DSMCalc(object):
         Calculate the 25th, 75th, and 100th percentile values for the data.  Determine comparison factor between the
         quartile ranges (q4r, iqr).  If calculated comparison factor is greater than a set threshold, this indicates an
         atypical feature on the roof, whose values we then remove.
-        :return:
         """
         if not self.masked_dsm.compressed().size <= 1:
             p_100 = np.percentile(self.masked_dsm.compressed(), 100)

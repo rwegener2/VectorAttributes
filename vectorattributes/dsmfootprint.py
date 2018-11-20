@@ -1,6 +1,9 @@
 from vectorattributes.footprint import Footprint
 from vectorattributes.dsmcalc import DSMCalc
 import numpy as np
+from vectorattributes.projection import reproject
+from shapely.geometry import mapping as to_json
+from shapely.geometry import shape as get_shape
 
 
 NEW_DEFAULT_PARAMS = {
@@ -67,13 +70,20 @@ class DSMFootprint(Footprint):
     """
     NEW_DEFAULT_PARAMS = NEW_DEFAULT_PARAMS
 
-    def __init__(self, dsm, feature, tree_dsm=None):
+    def __init__(self, feature, feature_crs, dsm, dsm_crs, tree_dsm=None):
         self.dsm = dsm
+        # TODO automatically check if input is CRS object or dict
+        # TODO check tree_dsm for proper crs
+        self.dsm_crs = self.crs_isvalid(dsm_crs)
+        self.input_feature_crs = self.crs_isvalid(feature_crs)
+        # TODO these logic statements probably shouldn't be here
         tree_flag = False
         if tree_dsm:
             self.tree_dsm = tree_dsm
             tree_flag = True
-        super().__init__(feature)
+        if self.input_feature_crs != self.dsm_crs:
+            feature = self.reproject_footprint(feature, self.input_feature_crs, self.dsm_crs)
+        super().__init__(feature, dsm_crs)
         self.DEFAULT_PARAMS.update(NEW_DEFAULT_PARAMS)
         self.footprint_errors['dsm_null'] = self.determine_is_null()
         self.calculation_errors = error_factory()
@@ -91,6 +101,21 @@ class DSMFootprint(Footprint):
 
         # Validation / Fixing wanky results
         self.check_for_errors()
+
+    @staticmethod
+    def crs_isvalid(crs):
+        if len(crs.keys()) > 1 or 'init' not in crs.keys() or crs['init'][:4] != 'epsg':
+            raise RuntimeError(
+                'Improper crs input, crs must be predefined using EPSG codes an cannot be raw parameters')
+        elif crs['init'][5:7] != '32' and crs['init'] != 'epsg:4326':
+            raise RuntimeError('Cannot handle epsg codes that are not WGS84 or UTM zones')
+        return crs['init']
+
+    @staticmethod
+    def reproject_footprint(feature, feature_crs, dsm_crs):
+        footprint_reproj = reproject(get_shape(feature['geometry']), from_proj=feature_crs, to_proj=dsm_crs)
+        feature['geometry'] = to_json(footprint_reproj)
+        return feature
 
     def determine_is_null(self):
         footprint = DSMCalc(self.dsm, self.footprint)
@@ -253,9 +278,13 @@ class DSMFootprint(Footprint):
         self.min_roof_height_error()
 
     def output_geojson(self):
-        output = {
+        feature4326 = self.feature
+        if self.fprint_crs != 'epsg:4326':
+            footprint_reproj = reproject(self.footprint, from_proj=self.fprint_crs, to_proj='epsg:4326')
+            feature4326['geometry'] = to_json(footprint_reproj)
+        return {
             'type': 'feature',
-            'geometry': self.feature['geometry'],
+            'geometry': feature4326['geometry'],
             'properties': {
                 'original_properties': self.properties,
                 'calculated_properties': {
@@ -269,4 +298,3 @@ class DSMFootprint(Footprint):
                     'calculated_properties': self.calculation_errors
                 }
             }}
-        return output
