@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add dsmfootprint capabilities in dense urban areas
 - Input CRS of any PROJ4 string
 - Reprojection for inputs not in EPSG
+- Check if crs inputs are rasterio CRS objects and convert to dict
 
 ### Changed
 - Buffer donut as subclass

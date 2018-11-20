@@ -70,17 +70,18 @@ class DSMFootprint(Footprint):
     """
     NEW_DEFAULT_PARAMS = NEW_DEFAULT_PARAMS
 
-    def __init__(self, feature, feature_crs, dsm, dsm_crs, tree_dsm=None):
+    def __init__(self, feature, feature_crs, dsm, dsm_crs, tree_dsm=None, tree_dsm_crs=None):
         self.dsm = dsm
-        # TODO automatically check if input is CRS object or dict
-        # TODO check tree_dsm for proper crs
         self.dsm_crs = self.crs_isvalid(dsm_crs)
         self.input_feature_crs = self.crs_isvalid(feature_crs)
         # TODO these logic statements probably shouldn't be here
         tree_flag = False
         if tree_dsm:
             self.tree_dsm = tree_dsm
+            self.tree_dsm_crs = tree_dsm_crs
             tree_flag = True
+            if self.tree_dsm_crs != self.dsm_crs:
+                raise ValueError('Tree masked dsm crs must match not-masked dsm crs')
         if self.input_feature_crs != self.dsm_crs:
             feature = self.reproject_footprint(feature, self.input_feature_crs, self.dsm_crs)
         super().__init__(feature, dsm_crs)
