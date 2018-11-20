@@ -78,7 +78,7 @@ class DSMFootprint(Footprint):
         tree_flag = False
         if tree_dsm:
             self.tree_dsm = tree_dsm
-            self.tree_dsm_crs = tree_dsm_crs
+            self.tree_dsm_crs = self.crs_isvalid(tree_dsm_crs)
             tree_flag = True
             if self.tree_dsm_crs != self.dsm_crs:
                 raise ValueError('Tree masked dsm crs must match not-masked dsm crs')
