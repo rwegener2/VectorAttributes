@@ -65,10 +65,12 @@ class Footprint(object):
 
     @staticmethod
     def crs_isvalid(crs):
+        if crs is None:
+            return None
         if len(crs.keys()) > 1 or 'init' not in crs.keys() or crs['init'][:4] != 'epsg':
             raise RuntimeError(
                 'Improper crs input, crs must be predefined using EPSG codes an cannot be raw parameters')
-        elif crs['init'][6:7] != 32 or crs['init'] != 'epsg:4326':
+        elif crs['init'][5:7] != '32' and crs['init'] != 'epsg:4326':
             raise RuntimeError('Cannot handle epsg codes that are not WGS84 or UTM zones')
         return crs['init']
 

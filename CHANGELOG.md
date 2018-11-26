@@ -6,7 +6,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- Add dsmfootprint capabilities in dense urban areas
 - Input CRS of any PROJ4 string
 - Reprojection for inputs not in EPSG
 - Check if crs inputs are rasterio CRS objects and convert to dict
@@ -14,6 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Buffer donut as subclass
 - Rename modules
+
+## [0.1.1] - 2018-11-26
+## Fixed
+- If dem is supplied use that to find DSMCalcs for ground (improves urban analysis)
+- Removed repetitive crs_isvalid in dsmfootprint
+- Fixed bug in CRS check of crs_isvalid
+
+## Changed
+- Pixel area calculated from DSM, not taken as parameter
 
 ## [0.1.0] - 2018-11-20
 ### Added
@@ -24,7 +32,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Input is checked for proper coordinate system
 - DSMFootprint converts footprints to crs of dsm
 - Output geojson geometry is converted to EPSG:4326
-
 
 ## [0.0.1] - 2018-10-25
 ### Added

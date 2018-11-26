@@ -63,18 +63,24 @@ class DSMFootprint(Footprint):
     This class runs the DSMCalc class on the footprints created in the Footprint class and them compares the outputs
     to flag oddities in the data or fix inconsistent values
 
-    Inputs assume that the feature is inside the DSM area and that the feature.
-
-    :param dsm:
     :param feature: A single geojson feature (not a full shapefile)
+    :param feature_crs:
+    :param dsm:
+    :param dsm_crs:
+    :param tree_dsm:
+    :param tree_dsm_crs:
+    :param dem:
+    :param dem_crs:
     """
     NEW_DEFAULT_PARAMS = NEW_DEFAULT_PARAMS
 
-    def __init__(self, feature, feature_crs, dsm, dsm_crs, tree_dsm=None, tree_dsm_crs=None):
+    def __init__(self, feature, feature_crs, dsm, dsm_crs, tree_dsm=None, tree_dsm_crs=None, dem=None, dem_crs=None):
+        # Setting all the initial variables
         self.dsm = dsm
         self.dsm_crs = self.crs_isvalid(dsm_crs)
         self.input_feature_crs = self.crs_isvalid(feature_crs)
         # TODO these logic statements probably shouldn't be here
+        # TODO Jon - how do you feel about a class that has some attributes only under certain circumstances
         tree_flag = False
         if tree_dsm:
             self.tree_dsm = tree_dsm
@@ -82,10 +88,18 @@ class DSMFootprint(Footprint):
             tree_flag = True
             if self.tree_dsm_crs != self.dsm_crs:
                 raise ValueError('Tree masked dsm crs must match not-masked dsm crs')
+        # set the dem
+        self.dem = dem
+        self.dem_crs = self.crs_isvalid(dem_crs)
+        if self.dem_crs is not None and self.dem_crs != self.dsm_crs:
+            raise ValueError('dem crs must match not-masked dsm crs')
+        # set feature crs
         if self.input_feature_crs != self.dsm_crs:
             feature = self.reproject_footprint(feature, self.input_feature_crs, self.dsm_crs)
         super().__init__(feature, dsm_crs)
         self.DEFAULT_PARAMS.update(NEW_DEFAULT_PARAMS)
+
+        # Calculations round 1
         self.footprint_errors['dsm_null'] = self.determine_is_null()
         self.calculation_errors = error_factory()
         self.footprint_calcs = self.footprint_calculations(tree_flag=tree_flag)
@@ -93,7 +107,7 @@ class DSMFootprint(Footprint):
         self.eave_calcs = self.eave_calculations(tree_flag=tree_flag)
         self.roof_calcs = self.roof_calculations(tree_flag=tree_flag)
 
-        # Calculating results
+        # Calculations round 2
         self.calculations = calculation_factory()
         self.get_elevations()
         self.calculate_pitch()
@@ -103,14 +117,7 @@ class DSMFootprint(Footprint):
         # Validation / Fixing wanky results
         self.check_for_errors()
 
-    @staticmethod
-    def crs_isvalid(crs):
-        if len(crs.keys()) > 1 or 'init' not in crs.keys() or crs['init'][:4] != 'epsg':
-            raise RuntimeError(
-                'Improper crs input, crs must be predefined using EPSG codes an cannot be raw parameters')
-        elif crs['init'][5:7] != '32' and crs['init'] != 'epsg:4326':
-            raise RuntimeError('Cannot handle epsg codes that are not WGS84 or UTM zones')
-        return crs['init']
+    # I took out crs_isvalid here because I think it should inherit, if something goes wanky perhaps repaste it here
 
     @staticmethod
     def reproject_footprint(feature, feature_crs, dsm_crs):
@@ -142,8 +149,15 @@ class DSMFootprint(Footprint):
                                       'comparison_factor_exceeded': footprint.errors['comparison_factor_exceeded']})
         return footprint.values
 
+    def set_height_model(self):
+        # TODO add flag for use of dem
+        if self.dem:
+            return self.dem
+        return self.dsm
+
     def ground_calculations(self):
-        ground = DSMCalc(self.dsm, self.footprint_ground, height_max=self.footprint_calcs['height_max'])
+        height_model = self.set_height_model()
+        ground = DSMCalc(height_model, self.footprint_ground, height_max=self.footprint_calcs['height_max'])
         self.full_dsm_operations(ground, test_dist=False)
         return ground.values
 

@@ -12,8 +12,8 @@ DEFAULT_PARAMS = {
     "dsm_calc": {
         "dsm_nodata": -9999,
         "min_elevation": -35,
-        "max_comparison_factor": 6,
-        "pixel_area": 4}
+        "max_comparison_factor": 6
+    }
 }
 
 
@@ -22,10 +22,12 @@ def factory():
         "all": {
             "dsm_null": False,
             "negative_elevation": False,
-            "comparison_factor_exceeded": False},
+            "comparison_factor_exceeded": False
+        },
         "find_nulls_only": {
             "dsm_null": False,
-            "negative_elevation": False}
+            "negative_elevation": False
+        }
     }
 
 
@@ -202,6 +204,13 @@ class DSMCalc(object):
         if not math.isnan(self.values['height_max']):
             self.masked_dsm[self.masked_dsm > self.values['height_max']] = np.ma.masked
 
+    def get_pixel_area(self):
+        """
+        :return: number of pixels per m^2
+        """
+        pixel_size_x, pixel_size_y = self.dsm.res
+        return 1 / (pixel_size_x * pixel_size_y)
+
     def calculate_stats(self):
         if self.masked_dsm.compressed().size > 1:
             self.set_pixel_count()
@@ -237,5 +246,5 @@ class DSMCalc(object):
 
         self.values['area'] = round(float(self.footprint.area), 5)
         self.values['coverage'] = round(float(self.values['pixel_count'] / self.values['area'] /
-                                              self.DEFAULT_PARAMS['dsm_calc']['pixel_area']), 5)
+                                              self.get_pixel_area()), 5)
         self.values['range'] = self.values['max'] - self.values['min']
