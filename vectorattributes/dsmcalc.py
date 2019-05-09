@@ -11,7 +11,7 @@ import math
 DEFAULT_PARAMS = {
     "dsm_calc": {
         "dsm_nodata": -9999,
-        "min_elevation": -35,
+        "min_elevation": -415,
         "max_comparison_factor": 6
     }
 }
