@@ -11,7 +11,7 @@ NEW_DEFAULT_PARAMS = {
         "low_building": 0.5,
         "min_eave_height": 2.5,
         "max_eave_roof_ratio": 2,
-        "max_roof_elevation": 2155,
+        "max_roof_elevation": 6000,
         "max_roof_height": 999999
     }
 }
