@@ -297,6 +297,10 @@ class DSMFootprint(Footprint):
         if self.fprint_crs != 'epsg:4326':
             footprint_reproj = reproject(self.footprint, from_proj=self.fprint_crs, to_proj='epsg:4326')
             feature4326['geometry'] = to_json(footprint_reproj)
+        # Remove stats we don't need to output
+        self.ground_calcs.pop('std')
+        self.roof_calcs.pop('std')
+        self.eave_calcs.pop('std')
         return {
             'type': 'feature',
             'geometry': feature4326['geometry'],

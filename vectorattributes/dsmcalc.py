@@ -218,6 +218,7 @@ class DSMCalc(object):
             self.values['max'] = round(float(self.masked_dsm.max()), 5)
             self.values['mean'] = round(float(self.masked_dsm.mean()), 5)
             self.values['sum'] = round(float(self.masked_dsm.sum()), 5)
+            self.values['std'] = round(float(self.masked_dsm.std()), 5)
             self.values['median'] = round(float(np.median(self.masked_dsm.compressed())), 5)
 
             self.values['10th_perc'] = np.percentile(self.masked_dsm, 10)
@@ -230,6 +231,7 @@ class DSMCalc(object):
             self.values['max'] = round(float(self.masked_dsm.compressed()[0]), 5)
             self.values['mean'] = round(float(self.masked_dsm.compressed()[0]), 5)
             self.values['sum'] = round(float(self.masked_dsm.compressed()[0]), 5)
+            self.values['std'] = 0
             self.values['pixel_count'] = 1
             self.values['median'] = round(float(self.masked_dsm.compressed()[0]), 5)
             self.values.update({'10th_perc': np.NaN, '25th_perc': np.NaN, '75th_perc': np.NaN, '90th_perc': np.NaN})
@@ -237,7 +239,8 @@ class DSMCalc(object):
         elif self.masked_dsm.compressed().size == 0:
             self.values['pixel_count'] = 0
             self.values.update({'min': np.NaN, 'max': np.NaN, 'mean': np.NaN, 'sum': np.NaN, 'median': np.NaN,
-                                '10th_perc': np.NaN, '25th_perc': np.NaN, '75th_perc': np.NaN, '90th_perc': np.NaN})
+                                '10th_perc': np.NaN, '25th_perc': np.NaN, '75th_perc': np.NaN, '90th_perc': np.NaN,
+                                'std': np.NaN})
 
         self.values['area'] = round(float(self.footprint.area), 5)
         self.values['coverage'] = round(float(self.values['pixel_count'] / self.values['area'] /
