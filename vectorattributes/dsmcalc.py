@@ -218,33 +218,27 @@ class DSMCalc(object):
             self.values['max'] = round(float(self.masked_dsm.max()), 5)
             self.values['mean'] = round(float(self.masked_dsm.mean()), 5)
             self.values['sum'] = round(float(self.masked_dsm.sum()), 5)
-            self.values['std'] = round(float(self.masked_dsm.std()), 5)
             self.values['median'] = round(float(np.median(self.masked_dsm.compressed())), 5)
 
-            pixel_counts_dict = Counter(self.masked_dsm.compressed().tolist())
-            try:
-                self.values['mode'] = round(float(pixel_counts_dict.most_common(1)[0][0]), 5)
-                self.values['minor'] = round(float(pixel_counts_dict.most_common()[-1][0]), 5)
-            except IndexError:
-                self.values['mode'] = np.NaN
-                self.values['minor'] = np.NaN
+            self.values['10th_perc'] = np.percentile(self.masked_dsm, 10)
+            self.values['25th_perc'] = np.percentile(self.masked_dsm, 25)
+            self.values['75th_perc'] = np.percentile(self.masked_dsm, 75)
+            self.values['90th_perc'] = np.percentile(self.masked_dsm, 90)
 
         elif self.masked_dsm.compressed().size == 1:
             self.values['min'] = round(float(self.masked_dsm.compressed()[0]), 5)
             self.values['max'] = round(float(self.masked_dsm.compressed()[0]), 5)
             self.values['mean'] = round(float(self.masked_dsm.compressed()[0]), 5)
             self.values['sum'] = round(float(self.masked_dsm.compressed()[0]), 5)
-            self.values['std'] = 0
             self.values['pixel_count'] = 1
             self.values['median'] = round(float(self.masked_dsm.compressed()[0]), 5)
-            self.values.update({'mode': np.NaN, 'minor': np.NaN})
+            self.values.update({'10th_perc': np.NaN, '25th_perc': np.NaN, '75th_perc': np.NaN, '90th_perc': np.NaN})
 
         elif self.masked_dsm.compressed().size == 0:
             self.values['pixel_count'] = 0
-            self.values.update({'min': np.NaN, 'max': np.NaN, 'mean': np.NaN, 'sum': np.NaN, 'std': np.NaN,
-                                'median': np.NaN, 'mode': np.NaN, 'minor': np.NaN})
+            self.values.update({'min': np.NaN, 'max': np.NaN, 'mean': np.NaN, 'sum': np.NaN, 'median': np.NaN,
+                                '10th_perc': np.NaN, '25th_perc': np.NaN, '75th_perc': np.NaN, '90th_perc': np.NaN})
 
         self.values['area'] = round(float(self.footprint.area), 5)
         self.values['coverage'] = round(float(self.values['pixel_count'] / self.values['area'] /
                                               self.get_pixel_area()), 5)
-        self.values['range'] = self.values['max'] - self.values['min']
