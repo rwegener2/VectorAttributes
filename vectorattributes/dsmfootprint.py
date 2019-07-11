@@ -180,7 +180,7 @@ class DSMFootprint(Footprint):
         return eave.values
 
     def get_elevations(self):
-        self.ground_calcs.update({'elevation': self.ground_calcs['min']})
+        self.ground_calcs.update({'elevation': self.ground_calcs['10th_perc']})
         self.roof_calcs.update({'elevation': self.roof_calcs['max']})
         self.eave_calcs.update({'elevation': self.eave_calcs['median']})
 
