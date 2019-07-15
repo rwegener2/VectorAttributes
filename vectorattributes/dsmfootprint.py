@@ -65,7 +65,7 @@ class DSMFootprint(Footprint):
 
     :param feature: A single geojson feature (not a full shapefile)
     :param feature_crs:
-    :param dsm:
+    :param dsm: src object of raster already opened by rasterio or another i/o library
     :param dsm_crs:
     :param tree_dsm:
     :param tree_dsm_crs:

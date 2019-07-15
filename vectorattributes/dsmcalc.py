@@ -113,7 +113,18 @@ class DSMCalc(object):
         """
         window = self.get_window_from_bounds()
         elev_data = self.dsm.read(1, window=window)
-        return elev_data
+        # Mask out nodata values
+        try:
+            nodata_val = self.dsm.meta['nodata']
+        except KeyError:
+            nodata_val = None
+        elev_masked = np.ma.masked_where(elev_data == nodata_val, elev_data)
+        np.ma.set_fill_value(elev_masked, nodata_val)
+        if elev_masked.min() < 0:
+            print('min ', elev_masked.min())
+        if (-9999 in elev_masked) is True:
+            print('found an improperly masked footprint')
+        return elev_masked
 
     def mask_dsm(self):
         """
@@ -133,6 +144,10 @@ class DSMCalc(object):
             dtype=np.uint8)
 
         masked_dsm = np.ma.array(data=self.dsm_data, mask=mask.astype(bool))
+        if masked_dsm.min() < 0:
+            print('min ', masked_dsm.min())
+        if (-9999 in masked_dsm) is True:
+            print('found an improperly masked footprint')
         return masked_dsm
 
     def null_data_error(self):
@@ -212,6 +227,12 @@ class DSMCalc(object):
         return 1 / (pixel_size_x * pixel_size_y)
 
     def calculate_stats(self):
+        filled_dsm = np.ma.filled(self.masked_dsm).flatten()
+        filled_dsm = filled_dsm[filled_dsm != self.masked_dsm.fill_value]
+        if filled_dsm.min() < 0:
+            print('min', filled_dsm.min())
+        if -9999 in filled_dsm:
+            print('found a -9999')
         if self.masked_dsm.compressed().size > 1:
             self.set_pixel_count()
             self.values['min'] = round(float(self.masked_dsm.min()), 5)
@@ -221,10 +242,10 @@ class DSMCalc(object):
             self.values['std'] = round(float(self.masked_dsm.std()), 5)
             self.values['median'] = round(float(np.median(self.masked_dsm.compressed())), 5)
 
-            self.values['10th_perc'] = np.percentile(self.masked_dsm, 10)
-            self.values['25th_perc'] = np.percentile(self.masked_dsm, 25)
-            self.values['75th_perc'] = np.percentile(self.masked_dsm, 75)
-            self.values['90th_perc'] = np.percentile(self.masked_dsm, 90)
+            self.values['10th_perc'] = np.percentile(filled_dsm, 10)
+            self.values['25th_perc'] = np.percentile(filled_dsm, 25)
+            self.values['75th_perc'] = np.percentile(filled_dsm, 75)
+            self.values['90th_perc'] = np.percentile(filled_dsm, 90)
 
         elif self.masked_dsm.compressed().size == 1:
             self.values['min'] = round(float(self.masked_dsm.compressed()[0]), 5)
@@ -234,6 +255,7 @@ class DSMCalc(object):
             self.values['std'] = 0
             self.values['pixel_count'] = 1
             self.values['median'] = round(float(self.masked_dsm.compressed()[0]), 5)
+
             self.values.update({'10th_perc': np.NaN, '25th_perc': np.NaN, '75th_perc': np.NaN, '90th_perc': np.NaN})
 
         elif self.masked_dsm.compressed().size == 0:
@@ -241,7 +263,3 @@ class DSMCalc(object):
             self.values.update({'min': np.NaN, 'max': np.NaN, 'mean': np.NaN, 'sum': np.NaN, 'median': np.NaN,
                                 '10th_perc': np.NaN, '25th_perc': np.NaN, '75th_perc': np.NaN, '90th_perc': np.NaN,
                                 'std': np.NaN})
-
-        self.values['area'] = round(float(self.footprint.area), 5)
-        self.values['coverage'] = round(float(self.values['pixel_count'] / self.values['area'] /
-                                              self.get_pixel_area()), 5)
