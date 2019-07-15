@@ -120,10 +120,6 @@ class DSMCalc(object):
             nodata_val = None
         elev_masked = np.ma.masked_where(elev_data == nodata_val, elev_data)
         np.ma.set_fill_value(elev_masked, nodata_val)
-        if elev_masked.min() < 0:
-            print('min ', elev_masked.min())
-        if (-9999 in elev_masked) is True:
-            print('found an improperly masked footprint')
         return elev_masked
 
     def mask_dsm(self):
@@ -144,10 +140,6 @@ class DSMCalc(object):
             dtype=np.uint8)
 
         masked_dsm = np.ma.array(data=self.dsm_data, mask=mask.astype(bool))
-        if masked_dsm.min() < 0:
-            print('min ', masked_dsm.min())
-        if (-9999 in masked_dsm) is True:
-            print('found an improperly masked footprint')
         return masked_dsm
 
     def null_data_error(self):
@@ -229,10 +221,6 @@ class DSMCalc(object):
     def calculate_stats(self):
         filled_dsm = np.ma.filled(self.masked_dsm).flatten()
         filled_dsm = filled_dsm[filled_dsm != self.masked_dsm.fill_value]
-        if filled_dsm.min() < 0:
-            print('min', filled_dsm.min())
-        if -9999 in filled_dsm:
-            print('found a -9999')
         if self.masked_dsm.compressed().size > 1:
             self.set_pixel_count()
             self.values['min'] = round(float(self.masked_dsm.min()), 5)
