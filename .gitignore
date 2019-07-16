@@ -1,6 +1,0 @@
-pytest_cache/
-other/
-test_data/
-__pycache__/
-.idea/
-.pytest_cache/
